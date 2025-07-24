@@ -136,11 +136,14 @@ def show_email_card(email):
         st.write(email['body'])
 
         if st.button("✉️ Generate & Auto-Reply", key=f"reply_{email['id']}"):
-            reply = reply_gen.generate_reply(email['body'])
+            with st.spinner("Generating reply..."):
+                reply = reply_gen.generate_reply(email['body'])
+
             st.text_area("Generated Reply", value=reply, height=150)
 
-            try:
-                if 'email_client' in st.session_state:
+            if 'email_client' in st.session_state:
+                try:
+                    st.info("📤 Sending reply...")
                     success = st.session_state.email_client.send_reply(
                         original_email=email,
                         reply_body=reply
@@ -148,9 +151,10 @@ def show_email_card(email):
                     if success:
                         st.success("✅ Auto-reply sent.")
                     else:
-                        st.error("❌ Failed to send reply.")
-            except Exception as e:
-                st.error(f"❌ Error while sending reply: {e}")
+                        st.error("❌ Failed to send reply (send_reply returned False).")
+                except Exception as e:
+                    st.error(f"❌ Exception while sending reply:\n\n{e}")
+                    st.code(f"Sender: {email['sender']}", language="text")
 
 def display_analytics():
     st.header("📊 Email Analytics")
