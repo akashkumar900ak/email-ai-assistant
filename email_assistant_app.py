@@ -2,21 +2,19 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-import json
 from classifier import EmailClassifier
-from prioritizer import EmailPrioritizer  # ✅ fixed import
-from reply_generator import ReplyGenerator  # ✅ fixed import
+from prioritizer import EmailPrioritizer
+from reply_generator import ReplyGenerator
 from email_client import EmailClient
-import time
 
-# Page configuration
+# Page config
 st.set_page_config(
     page_title="AI Email Assistant",
     page_icon="📧",
     layout="wide"
 )
 
-# Initialize session state
+# Session state setup
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'emails' not in st.session_state:
@@ -24,7 +22,7 @@ if 'emails' not in st.session_state:
 if 'selected_email' not in st.session_state:
     st.session_state.selected_email = None
 
-# Initialize components
+# Load models (cached)
 @st.cache_resource
 def load_components():
     classifier = EmailClassifier()
@@ -36,9 +34,9 @@ classifier, prioritizer, reply_gen = load_components()
 
 def main():
     st.title("🤖 AI Email Assistant")
-    st.markdown("*Intelligent email classification, prioritization, and reply generation*")
+    st.markdown("*Classify, prioritize, generate, and auto-reply to your emails intelligently.*")
 
-    # Sidebar for configuration
+    # Sidebar - Email config
     with st.sidebar:
         st.header("⚙️ Configuration")
         st.subheader("📧 Email Setup")
@@ -72,6 +70,7 @@ def main():
                 prioritizer.train_model()
             st.success("✅ Models trained!")
 
+    # Main UI
     if st.session_state.authenticated:
         tab1, tab2, tab3 = st.tabs(["📨 Inbox", "📊 Analytics", "⚙️ Settings"])
 
@@ -82,7 +81,7 @@ def main():
         with tab3:
             display_settings()
     else:
-        st.info("👆 Please connect your email or try demo mode using the sidebar")
+        st.info("👈 Connect email or use demo mode to continue.")
 
 def load_sample_emails():
     return [
@@ -137,9 +136,20 @@ def show_email_card(email):
         st.write("**Content:**")
         st.write(email['body'])
 
-        if st.button("✉️ Generate Reply", key=f"reply_{email['id']}"):
+        if st.button("✉️ Generate & Send Reply", key=f"reply_{email['id']}"):
             reply = reply_gen.generate_reply(email['body'])
-            st.text_area("Suggested Reply:", value=reply, height=150)
+            st.text_area("Generated Reply:", value=reply, height=150)
+
+            if 'email_client' in st.session_state:
+                success = st.session_state.email_client.send_email(
+                    to_address=email['sender'],
+                    subject=email['subject'],
+                    body=reply
+                )
+                if success:
+                    st.success("✅ Auto-reply sent!")
+                else:
+                    st.error("❌ Failed to send reply.")
 
 def display_analytics():
     st.header("📊 Email Analytics")
@@ -154,6 +164,6 @@ def display_settings():
     st.header("⚙️ Settings")
     st.slider("Model Confidence Threshold", 0.0, 1.0, 0.8)
 
-# Call the main function
+# Run app
 if __name__ == "__main__":
     main()
