@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+scikit-learn
+nltk
+transformers
+torch
+joblib
+python-dotenv
